@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# Server persistence (accounts, projects, worlds)
+data/
+
 # Vite cache
 .vite/
 

@@ -13,7 +13,7 @@ export function mountLanding(_params, container) {
         </p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="#/solo">Solo sandbox</a>
-          <button class="btn" id="btn-play" title="Coming soon" disabled>Play together (soon)</button>
+          <a class="btn" href="#/room">Play together</a>
         </div>
       </div>
     </div>
