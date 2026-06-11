@@ -1,19 +1,31 @@
 {
-  "name": "lego-builder",
+  "name": "block-party",
   "version": "1.0.0",
-  "description": "",
+  "description": "A 3D brick-building sandbox in the browser. Build your World, solo or together.",
+  "author": "Carmine Bufano (https://carminebufano.com)",
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://github.com/bufanoc/block-party",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bufanoc/block-party.git"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "bricks",
+    "three.js",
+    "3d",
+    "builder",
+    "sandbox",
+    "webgl"
+  ],
+  "type": "module",
   "dependencies": {
     "three": "^0.165.0",
     "vite": "^5.4.21"
-  },
-  "type": "module"
+  }
 }
