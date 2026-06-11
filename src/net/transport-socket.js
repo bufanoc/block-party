@@ -12,6 +12,7 @@ export class SocketTransport extends Emitter {
     this.socket = socket;
     this.projectId = projectId;
     this.capabilities = { undo: false };
+    this.meta = null;                  // project meta (name, creator, policy, frozen)
     this.mirror = new BrickStore();
     this._bricks = new Map();          // id -> authoritative brick
     this._snapshot = { bricks: [], frozen: false };
@@ -60,11 +61,15 @@ export class SocketTransport extends Emitter {
     return new Promise((resolve) => {
       this.socket.emit(C2S.PROJECT_JOIN, { projectId: this.projectId }, (res) => {
         if (res?.ok && res.snapshot) {
+          this.meta = res.meta || this.meta;
           this._setBricks(res.snapshot.bricks || []);
           this._snapshot.frozen = !!res.snapshot.frozen;
           // On a reconnect this fires again; push the fresh world to the builder.
           this.emit('reset', [...this._bricks.values()]);
           this.emit('frozen', this._snapshot.frozen);
+        } else if (res && !res.ok) {
+          // Could not join (no project / unauthenticated) — let the view bail out.
+          this.emit('fatal', res.reason || 'join-failed');
         }
         resolve();
       });

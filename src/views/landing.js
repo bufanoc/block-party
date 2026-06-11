@@ -12,8 +12,8 @@ export function mountLanding(_params, container) {
           stack them up, and build your World — solo today, together soon.
         </p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#/solo">Solo sandbox</a>
-          <a class="btn" href="#/room">Play together</a>
+          <a class="btn btn-primary" href="#/lobby">Play together</a>
+          <a class="btn" href="#/solo">Solo sandbox</a>
         </div>
       </div>
     </div>

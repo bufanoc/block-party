@@ -19,6 +19,29 @@ function worldPath(projectId) {
   return path.join(PROJECTS_DIR, `${projectId}.json`);
 }
 
+// Atomic write: write a temp file then rename over the target.
+async function writeAtomic(file, contents) {
+  const tmp = `${file}.tmp`;
+  await fs.writeFile(tmp, contents);
+  await fs.rename(tmp, file);
+}
+
+// ---- generic small-JSON docs (accounts, project index) ----
+// Low-frequency, so these write immediately (not debounced).
+
+export async function readJson(relPath, fallback = null) {
+  try {
+    return JSON.parse(await fs.readFile(path.join(DATA_DIR, relPath), 'utf8'));
+  } catch (err) {
+    if (err.code === 'ENOENT') return fallback;
+    throw err;
+  }
+}
+
+export async function writeJson(relPath, obj) {
+  await writeAtomic(path.join(DATA_DIR, relPath), JSON.stringify(obj, null, 2));
+}
+
 export async function loadWorld(projectId) {
   try {
     return await fs.readFile(worldPath(projectId), 'utf8');
@@ -26,13 +49,6 @@ export async function loadWorld(projectId) {
     if (err.code === 'ENOENT') return null;
     throw err;
   }
-}
-
-// Atomic write: write a temp file then rename over the target.
-async function writeAtomic(file, contents) {
-  const tmp = `${file}.tmp`;
-  await fs.writeFile(tmp, contents);
-  await fs.rename(tmp, file);
 }
 
 // Debounced per-project world save. `getSerialized` is called at flush time so

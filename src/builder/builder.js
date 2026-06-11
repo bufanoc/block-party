@@ -11,6 +11,7 @@ const TEMPLATE = `
   <canvas id="scene"></canvas>
   <div id="ui">
     <div id="toolbar">
+      <button id="btn-leave" title="Back to lobby" style="display:none">← Lobby</button>
       <span id="title">Block Party</span>
       <button id="btn-rotate" title="Rotate piece (R)">⟳ Rotate</button>
       <button id="btn-undo" title="Undo (Ctrl+Z)">↩ Undo</button>
@@ -29,7 +30,7 @@ const TEMPLATE = `
 
 // Mounts the 3D builder into `container`, driven by `transport` (solo or
 // networked — the builder doesn't care which). Returns { unmount }.
-export function mountBuilder(container, { transport }) {
+export function mountBuilder(container, { transport, onFatal, onLeave }) {
   container.innerHTML = TEMPLATE;
   const canvas = container.querySelector('#scene');
   const { renderer, scene, camera, controls, ground, dispose: disposeScene } =
@@ -214,6 +215,14 @@ export function mountBuilder(container, { transport }) {
   ui.setActiveColor(state.colorId);
   ui.setUndoVisible(transport.capabilities.undo);
 
+  // "← Lobby" button, shown only in networked mode (when a leave handler exists).
+  const leaveBtn = container.querySelector('#btn-leave');
+  function onLeaveClick() { onLeave?.(); }
+  if (onLeave) {
+    leaveBtn.style.display = '';
+    leaveBtn.addEventListener('click', onLeaveClick);
+  }
+
   // ---------- transport events (authoritative state -> meshes) ----------
 
   const offs = [
@@ -231,6 +240,7 @@ export function mountBuilder(container, { transport }) {
       ui.setFrozen(frozen);
       updateGhost();
     }),
+    transport.on('fatal', (reason) => { onFatal?.(reason); }),
   ];
 
   // ---------- initial state ----------
@@ -263,6 +273,7 @@ export function mountBuilder(container, { transport }) {
     canvas.removeEventListener('pointermove', onPointerMove);
     canvas.removeEventListener('pointerup', onPointerUp);
     canvas.removeEventListener('contextmenu', onContextMenu);
+    leaveBtn.removeEventListener('click', onLeaveClick);
     window.removeEventListener('keydown', onKeyDown);
     clearAllMeshes();
     disposeScene();

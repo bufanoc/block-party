@@ -1,25 +1,43 @@
 import { createRouter } from './router.js';
 import { mountLanding } from './views/landing.js';
+import { mountLogin } from './views/login.js';
+import { mountLobby } from './views/lobby.js';
 import { mountBuilder } from './builder/builder.js';
 import { LocalTransport } from './net/transport-local.js';
 import { SocketTransport } from './net/transport-socket.js';
 import { getSocket } from './net/client.js';
-import { DEFAULT_PROJECT_ID } from './net/protocol.js';
+import { getSession } from './net/session.js';
 
 const app = document.getElementById('app');
 const router = createRouter(app);
 
-router.register('#/', mountLanding);
+// Redirect to login if there's no session; returns whether auth is present.
+function requireAuth() {
+  if (getSession()) return true;
+  location.hash = '#/login';
+  return false;
+}
 
-// Solo sandbox: the builder driven by a local (offline) transport.
+router.register('#/', mountLanding);
+router.register('#/login', mountLogin);
+
+// Solo sandbox: offline builder, no server, no login.
 router.register('#/solo', (_params, container) =>
   mountBuilder(container, { transport: new LocalTransport() })
 );
 
-// Phase 1: shared room over the network (single hardcoded project, no auth).
-// The lobby and per-project routing arrive in Phase 2.
-router.register('#/room', (_params, container) =>
-  mountBuilder(container, { transport: new SocketTransport(getSocket(), DEFAULT_PROJECT_ID) })
+router.register('#/lobby', (params, container) =>
+  requireAuth() ? mountLobby(params, container) : null
 );
+
+// A project's shared World over the network.
+router.register('#/project/:id', (params, container) => {
+  if (!requireAuth()) return null;
+  return mountBuilder(container, {
+    transport: new SocketTransport(getSocket(), params.id),
+    onLeave: () => { location.hash = '#/lobby'; },
+    onFatal: () => { location.hash = '#/lobby'; },
+  });
+});
 
 router.start();
