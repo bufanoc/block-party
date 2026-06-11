@@ -11,6 +11,9 @@ dist/
 *.log
 npm-debug.log*
 
+# Temporary dev scratch notes
+HOW_TO_RUN.md
+
 # Editor / OS
 .DS_Store
 .idea/

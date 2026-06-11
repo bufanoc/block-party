@@ -59,11 +59,20 @@ export function createScene(canvas) {
   );
   scene.add(ground);
 
-  window.addEventListener('resize', () => {
+  const onResize = () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+  };
+  window.addEventListener('resize', onResize);
 
-  return { renderer, scene, camera, controls, ground };
+  // Tear down everything this scene owns (call on unmount to avoid leaking
+  // WebGL contexts and listeners when switching views).
+  function dispose() {
+    window.removeEventListener('resize', onResize);
+    controls.dispose();
+    renderer.dispose();
+  }
+
+  return { renderer, scene, camera, controls, ground, dispose };
 }

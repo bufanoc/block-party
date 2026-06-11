@@ -9,27 +9,7 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <canvas id="scene"></canvas>
-
-  <div id="ui">
-    <div id="toolbar">
-      <span id="title">Block Party</span>
-      <button id="btn-rotate" title="Rotate piece (R)">⟳ Rotate</button>
-      <button id="btn-undo" title="Undo (Ctrl+Z)">↩ Undo</button>
-      <button id="btn-clear" title="Remove all bricks">🗑 Clear</button>
-      <span id="count">0 bricks</span>
-    </div>
-
-    <div id="palette">
-      <div id="pieces"></div>
-      <div id="colors"></div>
-    </div>
-
-    <div id="hint">
-      Click: place &nbsp;·&nbsp; Right-click: delete &nbsp;·&nbsp; Drag: orbit &nbsp;·&nbsp; Scroll: zoom &nbsp;·&nbsp; R: rotate
-    </div>
-  </div>
-
-  <script type="module" src="/src/main.js"></script>
+  <div id="app"></div>
+  <script type="module" src="/src/app.js"></script>
 </body>
 </html>

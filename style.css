@@ -167,3 +167,86 @@ html, body {
   #palette { width: 132px; }
   .piece-btn { padding: 9px 4px; }
 }
+
+/* ---- frozen project state ---- */
+.frozen #toolbar { box-shadow: 0 0 0 2px #4aa3ff inset; }
+
+/* ---- landing page ---- */
+#landing {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #2a3550 0%, transparent 60%),
+    #1a1d24;
+}
+
+.hero {
+  max-width: 520px;
+  text-align: center;
+  padding: 36px 32px;
+  background: rgba(20, 23, 30, 0.85);
+  border: 1px solid #353b48;
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.hero-title {
+  color: #f2cd37;
+  font-size: 52px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.05;
+}
+
+.hero-by {
+  color: #8b93a7;
+  font-size: 15px;
+  margin-top: 6px;
+}
+
+.hero-by a { color: #cfd8ff; text-decoration: none; }
+.hero-by a:hover { text-decoration: underline; }
+
+.hero-blurb {
+  color: #c4cbd8;
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 20px auto 28px;
+  max-width: 420px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-block;
+  background: #2b3140;
+  color: #dfe4ee;
+  border: 1px solid #424a5c;
+  border-radius: 10px;
+  padding: 11px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:hover { background: #39415a; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background: #f2cd37;
+  color: #1a1d24;
+  border-color: #f2cd37;
+}
+
+.btn-primary:hover { background: #f7d855; }
