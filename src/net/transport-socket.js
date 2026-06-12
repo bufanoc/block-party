@@ -16,6 +16,8 @@ export class SocketTransport extends Emitter {
     this.meta = null;                  // project meta (name, creator, policy, frozen, size, baseColor)
     this.gridSize = DEFAULT_GRID;       // resolved from meta.size on join
     this.baseColor = DEFAULT_BASE_COLOR;
+    this.present = [];                  // usernames currently in the project
+    this.pending = [];                  // join requests (creator only)
     this.mirror = new BrickStore(DEFAULT_GRID);
     this._bricks = new Map();          // id -> authoritative brick
     this._snapshot = { bricks: [], frozen: false };
@@ -53,6 +55,15 @@ export class SocketTransport extends Emitter {
       this._snapshot.frozen = !!d.frozen;
       this.emit('frozen', this._snapshot.frozen);
     });
+    this._bind(S2C.PROJECT_RENAMED, (d) => {
+      if (d.projectId !== this.projectId) return;
+      if (this.meta) this.meta.name = d.name;
+      this.emit('renamed', d.name);
+    });
+    this._bind(S2C.PROJECT_DELETED, (d) => {
+      if (d.projectId !== this.projectId) return;
+      this.emit('fatal', 'deleted'); // project gone — bail to lobby
+    });
 
     // Re-join after a reconnect so we resync the world.
     this._bind('connect', () => { this._join(); }, /*onSocketDirectly*/ true);
@@ -70,6 +81,8 @@ export class SocketTransport extends Emitter {
           this.gridSize = gridFor(this.meta?.size);
           this.baseColor = this.meta?.baseColor || DEFAULT_BASE_COLOR;
           this.mirror = new BrickStore(this.gridSize);
+          this.present = res.present || [];
+          this.pending = res.pending || [];
           this._setBricks(res.snapshot.bricks || []);
           this._snapshot.frozen = !!res.snapshot.frozen;
           // On a reconnect this fires again; push the fresh world to the builder.

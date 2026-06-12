@@ -3,10 +3,11 @@ import { mountLanding } from './views/landing.js';
 import { mountLogin } from './views/login.js';
 import { mountLobby } from './views/lobby.js';
 import { mountBuilder } from './builder/builder.js';
+import { mountAdminPanel } from './views/admin.js';
 import { LocalTransport } from './net/transport-local.js';
 import { SocketTransport } from './net/transport-socket.js';
 import { getSocket } from './net/client.js';
-import { getSession } from './net/session.js';
+import { getSession, getUsername } from './net/session.js';
 
 const app = document.getElementById('app');
 const router = createRouter(app);
@@ -33,11 +34,20 @@ router.register('#/lobby', (params, container) =>
 // A project's shared World over the network.
 router.register('#/project/:id', (params, container) => {
   if (!requireAuth()) return null;
-  return mountBuilder(container, {
-    transport: new SocketTransport(getSocket(), params.id),
+  const transport = new SocketTransport(getSocket(), params.id);
+  let admin = null;
+  const builder = mountBuilder(container, {
+    transport,
     onLeave: () => { location.hash = '#/lobby'; },
     onFatal: () => { location.hash = '#/lobby'; },
+    // Once joined, the Creator gets the admin overlay.
+    onEnter: (t) => {
+      if (t.meta && t.meta.creator === getUsername()) {
+        admin = mountAdminPanel(container, { socket: getSocket(), transport: t });
+      }
+    },
   });
+  return { unmount() { admin?.unmount(); builder.unmount(); } };
 });
 
 router.start();

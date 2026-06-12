@@ -1,10 +1,10 @@
 import { getSocket, resetSocket } from '../net/client.js';
 import { getUsername, clearSession } from '../net/session.js';
-import { C2S, POLICY } from '../net/protocol.js';
+import { C2S, S2C, POLICY } from '../net/protocol.js';
 import { AVAILABLE_SIZES, SIZE_BY_ID, DEFAULT_SIZE_ID, DEFAULT_BASE_COLOR } from '../sizes.js';
 
-// Lobby: list / create / join projects. Approval enforcement and admin controls
-// arrive in Phase 3; here any logged-in user can join any project (open).
+// Lobby: list / create / join projects. Open projects enter immediately;
+// approval projects send a join request and wait for the Creator's decision.
 export function mountLobby(_params, container) {
   const username = getUsername();
   container.innerHTML = `
@@ -41,6 +41,14 @@ export function mountLobby(_params, container) {
         <div id="project-list" class="project-grid"></div>
         <p class="lobby-empty" id="lobby-empty" style="display:none">No projects yet — create the first one above.</p>
       </section>
+
+      <div id="wait-overlay" style="display:none">
+        <div class="wait-card">
+          <div class="wait-spinner"></div>
+          <p id="wait-msg"></p>
+          <button class="btn small" id="wait-cancel">Cancel</button>
+        </div>
+      </div>
     </div>
   `;
 
@@ -52,6 +60,33 @@ export function mountLobby(_params, container) {
   const createForm = container.querySelector('#create-form');
   const createErr = container.querySelector('#create-err');
   const logoutBtn = container.querySelector('#btn-logout');
+  const waitOverlay = container.querySelector('#wait-overlay');
+  const waitMsg = container.querySelector('#wait-msg');
+  const waitCancel = container.querySelector('#wait-cancel');
+
+  // Pending-approval state: socket listeners active while waiting.
+  let waitingFor = null;     // projectId we're waiting on
+  function onApproved(d) { if (d.projectId === waitingFor) { stopWaiting(); location.hash = `#/project/${d.projectId}`; } }
+  function onDenied(d) { if (d.projectId === waitingFor) { stopWaiting(); waitMsg.textContent = 'Request denied.'; waitOverlay.style.display = ''; setTimeout(() => { waitOverlay.style.display = 'none'; }, 2500); } }
+  socket.on(S2C.JOIN_APPROVED, onApproved);
+  socket.on(S2C.JOIN_DENIED, onDenied);
+
+  function startWaiting(p) {
+    waitingFor = p.id;
+    waitMsg.textContent = `Waiting for ${p.creator} to approve…`;
+    waitOverlay.style.display = '';
+  }
+  function stopWaiting() { waitingFor = null; waitOverlay.style.display = 'none'; }
+  waitCancel.addEventListener('click', stopWaiting);
+
+  // Open projects enter straight away; approval projects request + wait.
+  function joinProject(p) {
+    socket.emit(C2S.PROJECT_ENTER, { projectId: p.id }, (res) => {
+      if (!res?.ok) { refresh(); return; }      // e.g. project vanished
+      if (res.allowed) location.hash = `#/project/${p.id}`;
+      else if (res.pending) startWaiting(p);
+    });
+  }
 
   // Build a project card with DOM nodes (names are user input — never innerHTML).
   function card(p) {
@@ -97,7 +132,7 @@ export function mountLobby(_params, container) {
     const join = document.createElement('button');
     join.className = 'btn btn-primary small';
     join.textContent = 'Join';
-    join.addEventListener('click', () => { location.hash = `#/project/${p.id}`; });
+    join.addEventListener('click', () => joinProject(p));
 
     el.append(name, meta, badges, join);
     return el;
@@ -146,6 +181,9 @@ export function mountLobby(_params, container) {
     unmount() {
       createForm.removeEventListener('submit', onCreate);
       logoutBtn.removeEventListener('click', onLogout);
+      waitCancel.removeEventListener('click', stopWaiting);
+      socket.off(S2C.JOIN_APPROVED, onApproved);
+      socket.off(S2C.JOIN_DENIED, onDenied);
       container.innerHTML = '';
     },
   };

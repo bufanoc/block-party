@@ -10,6 +10,7 @@ export const C2S = {
   LOGIN: 'auth:login',
   PROJECT_LIST: 'project:list',
   PROJECT_CREATE: 'project:create',
+  PROJECT_ENTER: 'project:enter',   // lobby gate check (open vs approval)
   PROJECT_JOIN: 'project:join',
   PROJECT_LEAVE: 'project:leave',
   // building (phase 1)

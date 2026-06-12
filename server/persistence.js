@@ -72,3 +72,15 @@ export async function flush(projectId) {
 export async function flushAll() {
   await Promise.all([...pending.keys()].map((id) => flush(id)));
 }
+
+// Delete a project's world file and cancel any pending debounced write.
+export async function deleteWorld(projectId) {
+  const entry = pending.get(projectId);
+  if (entry?.timer) clearTimeout(entry.timer);
+  pending.delete(projectId);
+  try {
+    await fs.unlink(worldPath(projectId));
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+  }
+}

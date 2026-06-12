@@ -32,7 +32,7 @@ const TEMPLATE = `
 // networked). The grid size and baseplate color aren't known until the
 // transport initialises (for networked projects they arrive with the join),
 // so the 3D scene is built once init() resolves. Returns { unmount }.
-export function mountBuilder(container, { transport, onFatal, onLeave }) {
+export function mountBuilder(container, { transport, onFatal, onLeave, onEnter }) {
   container.innerHTML = TEMPLATE;
   let disposed = false;
   let teardown = null;
@@ -40,7 +40,7 @@ export function mountBuilder(container, { transport, onFatal, onLeave }) {
   transport.init().then((res) => {
     if (disposed) return;
     if (res && res.ok === false) { onFatal?.(res.reason); return; }
-    teardown = start(container, transport, { onFatal, onLeave });
+    teardown = start(container, transport, { onFatal, onLeave, onEnter });
   });
 
   return {
@@ -57,9 +57,11 @@ export function mountBuilder(container, { transport, onFatal, onLeave }) {
 
 // Builds the scene + input + UI once the transport is ready. Returns an
 // unmount function that tears everything down.
-function start(container, transport, { onFatal, onLeave }) {
+function start(container, transport, { onFatal, onLeave, onEnter }) {
   const grid = transport.gridSize;
   const canvas = container.querySelector('#scene');
+  const titleEl = container.querySelector('#title');
+  if (transport.meta?.name) titleEl.textContent = transport.meta.name;
   const { renderer, scene, camera, controls, ground, dispose: disposeScene } =
     createScene(canvas, { gridSize: grid, baseColor: transport.baseColor });
 
@@ -268,6 +270,7 @@ function start(container, transport, { onFatal, onLeave }) {
       updateGhost();
     }),
     transport.on('fatal', (reason) => { onFatal?.(reason); }),
+    transport.on('renamed', (name) => { titleEl.textContent = name; }),
   ];
 
   // ---------- initial state (transport.init() has resolved) ----------
@@ -278,6 +281,9 @@ function start(container, transport, { onFatal, onLeave }) {
   for (const b of snap.bricks) addBrickMesh(b);
   refreshCount();
   refreshGhostShape();
+
+  // Let the route mount creator-only admin UI now that meta is known.
+  onEnter?.(transport);
 
   // ---------- render loop ----------
 
