@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createScene } from '../scene.js';
-import { footprintSize, GRID } from '../placement.js';
+import { footprintSize } from '../placement.js';
 import { PIECE_BY_ID, PLATE_H } from '../bricks/catalog.js';
 import { pieceGeometry, materialFor } from '../bricks/geometry.js';
 import { buildUI } from '../ui/palette.js';
@@ -29,12 +29,39 @@ const TEMPLATE = `
 `;
 
 // Mounts the 3D builder into `container`, driven by `transport` (solo or
-// networked — the builder doesn't care which). Returns { unmount }.
+// networked). The grid size and baseplate color aren't known until the
+// transport initialises (for networked projects they arrive with the join),
+// so the 3D scene is built once init() resolves. Returns { unmount }.
 export function mountBuilder(container, { transport, onFatal, onLeave }) {
   container.innerHTML = TEMPLATE;
+  let disposed = false;
+  let teardown = null;
+
+  transport.init().then((res) => {
+    if (disposed) return;
+    if (res && res.ok === false) { onFatal?.(res.reason); return; }
+    teardown = start(container, transport, { onFatal, onLeave });
+  });
+
+  return {
+    unmount() {
+      disposed = true;
+      if (teardown) teardown();
+      else {
+        try { transport.dispose(); } catch { /* not yet wired */ }
+        container.innerHTML = '';
+      }
+    },
+  };
+}
+
+// Builds the scene + input + UI once the transport is ready. Returns an
+// unmount function that tears everything down.
+function start(container, transport, { onFatal, onLeave }) {
+  const grid = transport.gridSize;
   const canvas = container.querySelector('#scene');
   const { renderer, scene, camera, controls, ground, dispose: disposeScene } =
-    createScene(canvas);
+    createScene(canvas, { gridSize: grid, baseColor: transport.baseColor });
 
   const brickMeshes = new Map(); // brick id -> mesh
 
@@ -130,8 +157,8 @@ export function mountBuilder(container, { transport, onFatal, onLeave }) {
     const p = hit.point.clone().addScaledVector(n, 0.01);
     let x = Math.floor(p.x) - Math.floor((w - 1) / 2);
     let z = Math.floor(p.z) - Math.floor((d - 1) / 2);
-    x = Math.max(0, Math.min(GRID - w, x));
-    z = Math.max(0, Math.min(GRID - d, z));
+    x = Math.max(0, Math.min(grid - w, x));
+    z = Math.max(0, Math.min(grid - d, z));
     return { x, z };
   }
 
@@ -243,18 +270,14 @@ export function mountBuilder(container, { transport, onFatal, onLeave }) {
     transport.on('fatal', (reason) => { onFatal?.(reason); }),
   ];
 
-  // ---------- initial state ----------
+  // ---------- initial state (transport.init() has resolved) ----------
 
-  let disposed = false;
-  transport.init().then(() => {
-    if (disposed) return;
-    const snap = transport.getSnapshot();
-    state.frozen = !!snap.frozen;
-    ui.setFrozen(state.frozen);
-    for (const b of snap.bricks) addBrickMesh(b);
-    refreshCount();
-    refreshGhostShape();
-  });
+  const snap = transport.getSnapshot();
+  state.frozen = !!snap.frozen;
+  ui.setFrozen(state.frozen);
+  for (const b of snap.bricks) addBrickMesh(b);
+  refreshCount();
+  refreshGhostShape();
 
   // ---------- render loop ----------
 
@@ -265,8 +288,7 @@ export function mountBuilder(container, { transport, onFatal, onLeave }) {
 
   // ---------- teardown ----------
 
-  function unmount() {
-    disposed = true;
+  return function unmount() {
     renderer.setAnimationLoop(null);
     for (const off of offs) off();
     canvas.removeEventListener('pointerdown', onPointerDown);
@@ -279,7 +301,5 @@ export function mountBuilder(container, { transport, onFatal, onLeave }) {
     disposeScene();
     transport.dispose();
     container.innerHTML = '';
-  }
-
-  return { unmount };
+  };
 }

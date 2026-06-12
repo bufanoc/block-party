@@ -1,6 +1,8 @@
 import { PIECE_BY_ID } from './bricks/catalog.js';
+import { DEFAULT_GRID } from './sizes.js';
 
-export const GRID = 32; // baseplate size in studs
+// Default baseplate size in studs (used by solo mode and as a fallback).
+export const GRID = DEFAULT_GRID;
 
 // Footprint of a piece at rotation r (0..3): odd rotations swap w/d.
 export function footprintSize(piece, rot) {
@@ -8,22 +10,26 @@ export function footprintSize(piece, rot) {
 }
 
 // Holds placed bricks plus a per-cell height map (in plate units) so new
-// pieces stack on whatever is highest under their footprint.
+// pieces stack on whatever is highest under their footprint. The grid size is
+// per-project (the same stud pitch everywhere — a bigger world just has more
+// cells), so the same class backs a 32×32 sandbox or a 128×128 world.
 export class BrickStore {
-  constructor() {
+  constructor(gridSize = DEFAULT_GRID) {
+    this.grid = gridSize;
     this.bricks = new Map();   // id -> {id, pieceId, colorId, x, z, rot, level}
-    this.heights = new Int16Array(GRID * GRID);
+    this.heights = new Int16Array(gridSize * gridSize);
     this.nextId = 1;
     this.undoStack = [];       // [{type: 'add'|'remove', brick}]
   }
 
   levelFor(piece, x, z, rot) {
     const { w, d } = footprintSize(piece, rot);
-    if (x < 0 || z < 0 || x + w > GRID || z + d > GRID) return -1; // out of bounds
+    const G = this.grid;
+    if (x < 0 || z < 0 || x + w > G || z + d > G) return -1; // out of bounds
     let level = 0;
     for (let i = x; i < x + w; i++)
       for (let j = z; j < z + d; j++)
-        level = Math.max(level, this.heights[i * GRID + j]);
+        level = Math.max(level, this.heights[i * G + j]);
     return level;
   }
 
@@ -73,10 +79,11 @@ export class BrickStore {
   #raise(brick) {
     const piece = PIECE_BY_ID[brick.pieceId];
     const { w, d } = footprintSize(piece, brick.rot);
+    const G = this.grid;
     const top = brick.level + piece.h;
     for (let i = brick.x; i < brick.x + w; i++)
       for (let j = brick.z; j < brick.z + d; j++)
-        this.heights[i * GRID + j] = Math.max(this.heights[i * GRID + j], top);
+        this.heights[i * G + j] = Math.max(this.heights[i * G + j], top);
   }
 
   #rebuildHeights() {

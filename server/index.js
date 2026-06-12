@@ -38,9 +38,9 @@ io.on('connection', (socket) => {
     ack?.({ ok: true, projects: pm.list() });
   });
 
-  socket.on(C2S.PROJECT_CREATE, async ({ name, policy } = {}, ack) => {
+  socket.on(C2S.PROJECT_CREATE, async ({ name, policy, size, baseColor } = {}, ack) => {
     if (!socket.username) return ack?.({ ok: false, reason: 'unauthenticated' });
-    ack?.(await pm.create(socket.username, name, policy));
+    ack?.(await pm.create(socket.username, name, policy, size, baseColor));
   });
 
   socket.on(C2S.PROJECT_JOIN, async ({ projectId } = {}, ack) => {

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { BrickStore } from '../src/placement.js';
 import { PIECE_BY_ID, COLOR_BY_ID } from '../src/bricks/catalog.js';
 import { S2C, POLICY } from '../src/net/protocol.js';
+import { gridFor, SIZE_BY_ID, DEFAULT_SIZE_ID, DEFAULT_BASE_COLOR, isHexColor } from '../src/sizes.js';
 import * as persistence from './persistence.js';
 
 const INDEX_FILE = 'projects/index.json';
@@ -33,9 +34,12 @@ export class ProjectManager {
     return [...this.metas.values()].map((m) => ({ ...m }));
   }
 
-  async create(creator, name, policy) {
+  async create(creator, name, policy, size, baseColor) {
     const trimmed = String(name ?? '').trim();
     if (!NAME_RE.test(trimmed)) return { ok: false, reason: 'bad-name' };
+
+    const sizeId = SIZE_BY_ID[size] ? size : DEFAULT_SIZE_ID;
+    const color = isHexColor(baseColor) ? baseColor : DEFAULT_BASE_COLOR;
 
     const meta = {
       id: randomUUID(),
@@ -43,10 +47,12 @@ export class ProjectManager {
       creator,
       policy: policy === POLICY.APPROVAL ? POLICY.APPROVAL : POLICY.OPEN,
       frozen: false,
+      size: sizeId,
+      baseColor: color,
       createdAt: Date.now(),
     };
     this.metas.set(meta.id, meta);
-    this.loaded.set(meta.id, new BrickStore());
+    this.loaded.set(meta.id, new BrickStore(gridFor(sizeId)));
     persistence.saveWorldDebounced(meta.id, () => this.loaded.get(meta.id).serialize());
     await this._saveIndex();
     return { ok: true, meta };
@@ -57,8 +63,9 @@ export class ProjectManager {
   async _store(projectId) {
     let store = this.loaded.get(projectId);
     if (store) return store;
-    if (!this.metas.has(projectId)) return null;
-    store = new BrickStore();
+    const meta = this.metas.get(projectId);
+    if (!meta) return null;
+    store = new BrickStore(gridFor(meta.size));
     const saved = await persistence.loadWorld(projectId);
     if (saved) store.load(saved);
     this.loaded.set(projectId, store);

@@ -322,6 +322,19 @@ html, body {
   padding: 10px 12px; font-size: 14px;
 }
 
+.color-field {
+  display: flex; align-items: center; gap: 8px;
+  background: #1f242f; border: 1px solid #424a5c; border-radius: 8px;
+  padding: 4px 10px;
+}
+.color-field span { color: #8b93a7; font-size: 13px; }
+.color-field input[type=color] {
+  width: 34px; height: 28px; padding: 0;
+  border: none; background: none; cursor: pointer;
+}
+
+.badge.size { background: #2a2540; color: #c9b8ff; border-color: #4a3f6e; }
+
 .project-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

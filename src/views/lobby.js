@@ -1,6 +1,7 @@
 import { getSocket, resetSocket } from '../net/client.js';
 import { getUsername, clearSession } from '../net/session.js';
 import { C2S, POLICY } from '../net/protocol.js';
+import { AVAILABLE_SIZES, SIZE_BY_ID, DEFAULT_SIZE_ID, DEFAULT_BASE_COLOR } from '../sizes.js';
 
 // Lobby: list / create / join projects. Approval enforcement and admin controls
 // arrive in Phase 3; here any logged-in user can join any project (open).
@@ -19,6 +20,13 @@ export function mountLobby(_params, container) {
         <h2>Start a new Project</h2>
         <form id="create-form" class="create-row">
           <input id="project-name" maxlength="40" placeholder="Project name" required />
+          <select id="project-size" title="Baseplate size">
+            ${AVAILABLE_SIZES.map((s) => `<option value="${s.id}"${s.id === DEFAULT_SIZE_ID ? ' selected' : ''}>${s.name} — ${s.grid}×${s.grid}</option>`).join('')}
+          </select>
+          <label class="color-field" title="Baseplate color">
+            <span>Base</span>
+            <input id="project-color" type="color" value="${DEFAULT_BASE_COLOR}" />
+          </label>
           <select id="project-policy">
             <option value="${POLICY.OPEN}">Open — anyone can join</option>
             <option value="${POLICY.APPROVAL}">Approval required</option>
@@ -60,6 +68,15 @@ export function mountLobby(_params, container) {
 
     const badges = document.createElement('div');
     badges.className = 'project-badges';
+
+    const sizeMeta = SIZE_BY_ID[p.size];
+    if (sizeMeta) {
+      const sz = document.createElement('span');
+      sz.className = 'badge size';
+      sz.textContent = `${sizeMeta.name} ${sizeMeta.grid}²`;
+      badges.appendChild(sz);
+    }
+
     const policy = document.createElement('span');
     policy.className = 'badge';
     policy.textContent = p.policy === POLICY.APPROVAL ? 'Approval' : 'Open';
@@ -105,7 +122,9 @@ export function mountLobby(_params, container) {
     createErr.textContent = '';
     const name = container.querySelector('#project-name').value;
     const policy = container.querySelector('#project-policy').value;
-    socket.emit(C2S.PROJECT_CREATE, { name, policy }, (res) => {
+    const size = container.querySelector('#project-size').value;
+    const baseColor = container.querySelector('#project-color').value;
+    socket.emit(C2S.PROJECT_CREATE, { name, policy, size, baseColor }, (res) => {
       if (res?.ok) location.hash = `#/project/${res.meta.id}`;
       else createErr.textContent = res?.reason === 'bad-name'
         ? 'Name must be 1–40 characters.'

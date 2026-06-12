@@ -1,5 +1,6 @@
 import { Emitter } from './emitter.js';
 import { BrickStore } from '../placement.js';
+import { DEFAULT_GRID, DEFAULT_BASE_COLOR } from '../sizes.js';
 
 // Solo transport: owns a local BrickStore and persists to localStorage.
 // Mutations are applied synchronously and echoed as events, so the builder
@@ -9,15 +10,18 @@ import { BrickStore } from '../placement.js';
 const SAVE_KEY = 'brick-builder-save-v1';
 
 export class LocalTransport extends Emitter {
-  constructor() {
+  constructor(gridSize = DEFAULT_GRID, baseColor = DEFAULT_BASE_COLOR) {
     super();
-    this.store = new BrickStore();
+    this.gridSize = gridSize;
+    this.baseColor = baseColor;
+    this.store = new BrickStore(gridSize);
     this.capabilities = { undo: true };
   }
 
   async init() {
     const saved = localStorage.getItem(SAVE_KEY);
     if (saved) this.store.load(saved);
+    return { ok: true };
   }
 
   getSnapshot() {

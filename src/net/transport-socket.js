@@ -1,6 +1,7 @@
 import { Emitter } from './emitter.js';
 import { BrickStore } from '../placement.js';
 import { C2S, S2C } from './protocol.js';
+import { gridFor, DEFAULT_GRID, DEFAULT_BASE_COLOR } from '../sizes.js';
 
 // Networked transport: the server owns the authoritative World. We send
 // intents and render only when the server echoes a broadcast (apply-on-echo).
@@ -12,8 +13,10 @@ export class SocketTransport extends Emitter {
     this.socket = socket;
     this.projectId = projectId;
     this.capabilities = { undo: false };
-    this.meta = null;                  // project meta (name, creator, policy, frozen)
-    this.mirror = new BrickStore();
+    this.meta = null;                  // project meta (name, creator, policy, frozen, size, baseColor)
+    this.gridSize = DEFAULT_GRID;       // resolved from meta.size on join
+    this.baseColor = DEFAULT_BASE_COLOR;
+    this.mirror = new BrickStore(DEFAULT_GRID);
     this._bricks = new Map();          // id -> authoritative brick
     this._snapshot = { bricks: [], frozen: false };
     this._listeners = [];              // [event, fn] for teardown
@@ -62,16 +65,23 @@ export class SocketTransport extends Emitter {
       this.socket.emit(C2S.PROJECT_JOIN, { projectId: this.projectId }, (res) => {
         if (res?.ok && res.snapshot) {
           this.meta = res.meta || this.meta;
+          // Size/color come from the project — size the mirror to match so the
+          // ghost preview's bounds and stacking are correct.
+          this.gridSize = gridFor(this.meta?.size);
+          this.baseColor = this.meta?.baseColor || DEFAULT_BASE_COLOR;
+          this.mirror = new BrickStore(this.gridSize);
           this._setBricks(res.snapshot.bricks || []);
           this._snapshot.frozen = !!res.snapshot.frozen;
           // On a reconnect this fires again; push the fresh world to the builder.
           this.emit('reset', [...this._bricks.values()]);
           this.emit('frozen', this._snapshot.frozen);
-        } else if (res && !res.ok) {
-          // Could not join (no project / unauthenticated) — let the view bail out.
-          this.emit('fatal', res.reason || 'join-failed');
+          resolve({ ok: true });
+        } else {
+          const reason = res?.reason || 'join-failed';
+          // For a reconnect-time failure the builder is already listening.
+          this.emit('fatal', reason);
+          resolve({ ok: false, reason });
         }
-        resolve();
       });
     });
   }
