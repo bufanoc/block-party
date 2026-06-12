@@ -7,10 +7,13 @@ in real time over the network.
 Built with [Three.js](https://threejs.org/), [Vite](https://vitejs.dev/), and
 [Socket.IO](https://socket.io/).
 
-> ⚠️ **Pre-release (v1.0.0-pre).** Block Party works and is fun to self-host, but
-> it is **not hardened for the public internet** — auth is a lightweight
-> username + PIN, traffic is plain HTTP, and there's no rate-limiting or quotas.
-> Run it on a **trusted network (LAN/VPN)** or behind a reverse proxy with HTTPS.
+> **Pre-release (v1.0.0-pre) — a LAN-party game.** Block Party is made for people
+> on the same network (or the same room): play side-by-side on your **LAN**, or
+> with remote friends over a private encrypted overlay like
+> [ZeroTier](https://www.zerotier.com/) or Tailscale. It's intentionally
+> lightweight — a username + PIN, plain HTTP — which is exactly right on a trusted
+> network, and exactly why you should **not put it on a public IP**. Keep it on
+> your LAN/VPN and you're all set.
 
 ## Quick start — self-host on Ubuntu Server 24.04 LTS
 
@@ -167,12 +170,24 @@ PORT=3000 node server/index.js
 
 (or edit the `Environment=PORT=` line in the service file).
 
-### Security note
+### Security & networking
 
-Accounts use a username + PIN, hashed server-side with `scrypt` — lightweight,
-meant for friends and self-hosting, not bank-grade. The server speaks plain
-HTTP. To expose it to the public internet, put it behind a reverse proxy
-(nginx / Caddy) terminating HTTPS.
+Block Party is designed to live on a **trusted network**, and its security model
+assumes exactly that:
+
+- **On your LAN** — just share the URL with people on the same Wi-Fi/network.
+- **With remote friends** — put everyone on a private encrypted overlay like
+  [ZeroTier](https://www.zerotier.com/) or [Tailscale](https://tailscale.com/),
+  then share the server's overlay address. Your traffic rides inside their
+  end-to-end encryption, and only invited members can reach it.
+- **Do not expose it directly on a public IP.** Auth is a lightweight username +
+  PIN (hashed with `scrypt`), traffic is plain HTTP, and there's no rate-limiting
+  or quotas — all fine among people you've invited to a private network, not fine
+  facing the open internet.
+
+If you ever *do* want a public, hardened deployment, that's a future step
+(reverse proxy + HTTPS + rate-limiting) — but it's deliberately out of scope for
+this LAN-party release.
 
 ## Controls
 
