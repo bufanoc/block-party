@@ -15,13 +15,13 @@ Built with [Three.js](https://threejs.org/), [Vite](https://vitejs.dev/), and
 ## Quick start — self-host on Ubuntu Server 24.04 LTS
 
 On a fresh **Ubuntu Server 24.04 LTS** box, one command installs everything
-(Node.js, the app, a build) and starts it as a service on port **8080**:
+(Node.js, the app, a build) and starts it as a service on port **80**:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/bufanoc/block-party/main/install.sh | sudo bash
 ```
 
-Then open **`http://<your-server-ip>:8080`**. Re-run the same command to update.
+Then open **`http://<your-server-ip>`**. Re-run the same command to update.
 
 > Want to see what it does first? Read [`install.sh`](install.sh) — it's short.
 > Prefer to do it by hand? See [Run your own server](#run-your-own-server) below.
@@ -91,23 +91,31 @@ npm run build
 
 ### 3. Run it
 
+In production the server serves the whole app **and** the multiplayer socket on
+a **single port** — and defaults to **port 80** (clean URLs). Port 80 is
+privileged, so for a quick foreground run either use `sudo`, or pick an
+unprivileged port:
+
 ```bash
-npm start            # serves the whole app on port 8080
+sudo npm start                 # port 80  → http://<server-ip>
+# or, no sudo needed:
+PORT=8080 npm start            # port 8080 → http://<server-ip>:8080
 ```
 
-Open **`http://<server-ip>:8080`** in any browser. If you use the firewall:
+If you use the firewall, open the port (`80` or `8080`):
 
 ```bash
-sudo ufw allow 8080/tcp
+sudo ufw allow 80/tcp
 ```
 
-In production a **single process serves both the app and the multiplayer
-socket** on one port — no separate front-end server.
+For anything long-lived, use the systemd service below — it binds port 80
+without running as root.
 
-### Keep it running (systemd) — optional but recommended
+### Keep it running (systemd) — recommended
 
-So it starts on boot and restarts on failure. Create
-`/etc/systemd/system/block-party.service` (replace the path and user):
+So it starts on boot, restarts on failure, and binds port 80 as an unprivileged
+user. Create `/etc/systemd/system/block-party.service` (replace the path and
+user):
 
 ```ini
 [Unit]
@@ -117,9 +125,12 @@ After=network.target
 [Service]
 WorkingDirectory=/home/USER/block-party
 ExecStart=/usr/bin/node server/index.js
-Environment=PORT=8080
+Environment=PORT=80
+Environment=NODE_ENV=production
 Restart=on-failure
 User=USER
+# Lets the unprivileged user bind port 80 (no running as root).
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target

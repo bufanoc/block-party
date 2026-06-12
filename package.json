@@ -15,7 +15,7 @@
     "server": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview --host",
-    "start": "PORT=8080 node server/index.js"
+    "start": "node server/index.js"
   },
   "engines": {
     "node": ">=18"

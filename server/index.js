@@ -9,7 +9,6 @@ import { Auth } from './auth.js';
 import * as persistence from './persistence.js';
 import { C2S } from '../src/net/protocol.js';
 
-const PORT = Number(process.env.PORT) || 3001;
 const HOST = '0.0.0.0';
 
 // Production: when a built front-end exists in dist/, this one process serves
@@ -18,6 +17,11 @@ const HOST = '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
 const SERVE_STATIC = existsSync(path.join(DIST, 'index.html'));
+
+// Default to port 80 in production (clean URLs, no :port) and 3001 in dev.
+// Override with the PORT env var. Binding 80 needs privilege — the systemd
+// service grants CAP_NET_BIND_SERVICE; for a manual run use sudo or PORT=8080.
+const PORT = Number(process.env.PORT) || (SERVE_STATIC ? 80 : 3001);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -126,6 +130,19 @@ io.on('connection', (socket) => {
   socket.on(C2S.JOIN_DENY, (intent = {}, ack) => { const r = pm.deny(socket, intent); ack?.(r); });
 
   socket.on('disconnect', () => pm.handleDisconnect(socket));
+});
+
+httpServer.on('error', (err) => {
+  if (err.code === 'EACCES') {
+    console.error(`\nCannot bind port ${PORT} — permission denied.\n` +
+      `Port 80 is privileged. Run with sudo, use the systemd service, or set an ` +
+      `unprivileged port, e.g.  PORT=8080 npm start\n`);
+  } else if (err.code === 'EADDRINUSE') {
+    console.error(`\nPort ${PORT} is already in use. Stop the other process or set PORT.\n`);
+  } else {
+    console.error(err);
+  }
+  process.exit(1);
 });
 
 httpServer.listen(PORT, HOST, () => {

@@ -18,7 +18,7 @@ set -euo pipefail
 
 APP_USER="blockparty"
 APP_DIR="/opt/block-party"
-PORT="8080"
+PORT="80"
 REPO="https://github.com/bufanoc/block-party.git"
 NODE_MAJOR="20"
 
@@ -84,6 +84,8 @@ Environment=PORT=${PORT}
 Environment=NODE_ENV=production
 Restart=on-failure
 User=${APP_USER}
+# Allow the unprivileged service user to bind the privileged port (80).
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target
@@ -98,12 +100,13 @@ if command -v ufw >/dev/null 2>&1; then
 fi
 
 IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+if [ "$PORT" = "80" ]; then URL="http://${IP:-<server-ip>}"; else URL="http://${IP:-<server-ip>}:${PORT}"; fi
 cat <<DONE
 
 ================================================================
   Block Party is running.
 
-    Open:    http://${IP:-<server-ip>}:${PORT}
+    Open:    ${URL}
     Status:  systemctl status block-party
     Logs:    journalctl -u block-party -f
     Stop:    systemctl stop block-party
