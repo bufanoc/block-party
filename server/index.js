@@ -1,21 +1,67 @@
 import { createServer } from 'node:http';
+import { existsSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Server } from 'socket.io';
 import { ProjectManager, userRoom } from './projects.js';
 import { Auth } from './auth.js';
 import * as persistence from './persistence.js';
 import { C2S } from '../src/net/protocol.js';
 
-const PORT = 3001;
+const PORT = Number(process.env.PORT) || 3001;
 const HOST = '0.0.0.0';
+
+// Production: when a built front-end exists in dist/, this one process serves
+// the app AND the multiplayer socket on a single port (PORT). In dev there is
+// no dist/ — Vite serves the front-end on :5173 and this is just the API/socket.
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DIST = path.join(ROOT, 'dist');
+const SERVE_STATIC = existsSync(path.join(DIST, 'index.html'));
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
+  '.map': 'application/json',
+};
+
+// Serve files from dist/ with an SPA fallback to index.html. Socket.IO
+// intercepts its own /socket.io/ requests before this handler runs.
+async function serveStatic(req, res) {
+  try {
+    const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    let filePath = path.normalize(path.join(DIST, urlPath));
+    if (!filePath.startsWith(DIST)) { res.writeHead(403); return res.end(); } // traversal guard
+    let info = null;
+    try { info = await stat(filePath); } catch { /* missing */ }
+    if (!info || info.isDirectory()) filePath = path.join(DIST, 'index.html'); // SPA fallback
+    const body = await readFile(filePath);
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(filePath)] || 'application/octet-stream' });
+    res.end(body);
+  } catch {
+    res.writeHead(404); res.end('Not found');
+  }
+}
 
 await persistence.ensureDirs();
 
 const auth = new Auth();
 await auth.init();
 
-const httpServer = createServer();
-// Permissive CORS for the LAN dev tool (Vite serves the page from :5173 on
-// localhost / LAN / ZeroTier). Tighten before any public deployment.
+const httpServer = createServer((req, res) => {
+  if (SERVE_STATIC) return serveStatic(req, res);
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Block Party game server (dev). The front-end is served by Vite on :5173.\n');
+});
+// Permissive CORS for the dev tool (Vite serves the page from :5173, a
+// different origin). In production the page is same-origin, so CORS is moot.
 const io = new Server(httpServer, { cors: { origin: true } });
 const pm = new ProjectManager(io);
 await pm.init();
@@ -83,7 +129,8 @@ io.on('connection', (socket) => {
 });
 
 httpServer.listen(PORT, HOST, () => {
-  console.log(`Block Party server listening on http://${HOST}:${PORT}`);
+  const mode = SERVE_STATIC ? 'serving app + multiplayer' : 'dev (socket/API only)';
+  console.log(`Block Party server listening on http://${HOST}:${PORT} — ${mode}`);
 });
 
 // Flush pending world writes on shutdown so nothing is lost.
