@@ -7,13 +7,12 @@ in real time over the network.
 Built with [Three.js](https://threejs.org/), [Vite](https://vitejs.dev/), and
 [Socket.IO](https://socket.io/).
 
-> **Pre-release (v1.0.0-pre) — a LAN-party game.** Block Party is made for people
-> on the same network (or the same room): play side-by-side on your **LAN**, or
-> with remote friends over a private encrypted overlay like
-> [ZeroTier](https://www.zerotier.com/) or Tailscale. It's intentionally
-> lightweight — a username + PIN, plain HTTP — which is exactly right on a trusted
-> network, and exactly why you should **not put it on a public IP**. Keep it on
-> your LAN/VPN and you're all set.
+> **A LAN-party game (v1.0).** Block Party is made for people on the same network
+> (or the same room): play side-by-side on your **LAN**, or with remote friends
+> over a private encrypted overlay like [ZeroTier](https://www.zerotier.com/) or
+> Tailscale. It's intentionally lightweight — a username + PIN, plain HTTP — which
+> is exactly right on a trusted network, and exactly why you should **not put it
+> on a public IP**. Keep it on your LAN/VPN and you're all set.
 
 ## Quick start — self-host on Ubuntu Server 24.04 LTS
 
@@ -44,9 +43,13 @@ Then open **`http://<your-server-ip>`**. Re-run the same command to update.
 
 ## Play
 
-Playing needs nothing but a browser — open the URL your host gives you on
-Windows, macOS, Linux, Android, or iPhone. **Solo sandbox** works with no
+Playing needs nothing but a browser — open the URL your host gives you on any
+**desktop or laptop** (Windows, macOS, Linux). **Solo sandbox** works with no
 account; **Play together** asks for a name and a PIN.
+
+> Mobile (phones/tablets) is **experimental** in this release — the 3D builder
+> may run, but the touch controls and on-screen panels aren't tuned for small
+> screens yet. It's on the roadmap.
 
 ## Develop
 

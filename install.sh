@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Block Party — pre-release installer for Ubuntu Server 24.04 LTS.
+# Block Party — installer for Ubuntu Server 24.04 LTS.
 #
 # Turns a fresh Ubuntu 24.04 LTS server into a running Block Party server:
 # installs Node.js, fetches the code, builds the front-end, and runs it as a
@@ -11,8 +11,8 @@
 # Re-running it updates an existing install in place. Opinionated by design;
 # tweak the variables below if you want different paths/port/user.
 #
-# NOTE: pre-release software. Intended for a trusted network (LAN/VPN) or behind
-# a reverse proxy with HTTPS. It is NOT hardened for direct public-internet use.
+# NOTE: a LAN-party game. Intended for a trusted network (LAN, or a private
+# overlay like ZeroTier/Tailscale). Do NOT expose it on a public IP.
 
 set -euo pipefail
 
