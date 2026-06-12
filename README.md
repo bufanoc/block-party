@@ -7,6 +7,25 @@ in real time over the network.
 Built with [Three.js](https://threejs.org/), [Vite](https://vitejs.dev/), and
 [Socket.IO](https://socket.io/).
 
+> ⚠️ **Pre-release (v1.0.0-pre).** Block Party works and is fun to self-host, but
+> it is **not hardened for the public internet** — auth is a lightweight
+> username + PIN, traffic is plain HTTP, and there's no rate-limiting or quotas.
+> Run it on a **trusted network (LAN/VPN)** or behind a reverse proxy with HTTPS.
+
+## Quick start — self-host on Ubuntu Server 24.04 LTS
+
+On a fresh **Ubuntu Server 24.04 LTS** box, one command installs everything
+(Node.js, the app, a build) and starts it as a service on port **8080**:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bufanoc/block-party/main/install.sh | sudo bash
+```
+
+Then open **`http://<your-server-ip>:8080`**. Re-run the same command to update.
+
+> Want to see what it does first? Read [`install.sh`](install.sh) — it's short.
+> Prefer to do it by hand? See [Run your own server](#run-your-own-server) below.
+
 ## Features
 
 - Click to place bricks, right-click to delete, with a live ghost preview
